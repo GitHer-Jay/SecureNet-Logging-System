@@ -1,10 +1,14 @@
 from fastapi import FastAPI
+import threading
+
 from core.database import create_table
 from core.log_manager import add_log
 from core.verifier import verify_logs
+from agent.host_agent import start_agent
 
 app = FastAPI()
 
+# Create DB table on startup
 create_table()
 
 
@@ -23,3 +27,10 @@ def log(event: str, description: str, user: str, ip: str):
 def verify():
     result = verify_logs()
     return {"result": result}
+
+
+# 🔥 START AGENT AUTOMATICALLY
+@app.on_event("startup")
+def start_background_agent():
+    thread = threading.Thread(target=start_agent, daemon=True)
+    thread.start()
