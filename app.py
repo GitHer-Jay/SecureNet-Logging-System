@@ -19,23 +19,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Create table
 create_table()
 
+# Home route
 @app.get("/")
 def home():
     return {"message": "SecureNet Logging System Running"}
 
-@app.post("/log")
+# Add log (GET for browser testing)
+@app.get("/log")
 def log(event: str, description: str, user: str, ip: str):
     root = add_log(event, description, user, ip)
     return {"status": "added", "merkle_root": root}
 
+# Verify logs
 @app.get("/verify")
 def verify():
     return {"result": verify_logs()}
 
+# Get logs
 @app.get("/logs")
 def logs():
     return get_logs()
 
+# Start background agent
 threading.Thread(target=start_agent, daemon=True).start()
