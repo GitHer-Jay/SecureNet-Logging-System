@@ -1,17 +1,18 @@
-from crypto.hashing import sha256
+import hashlib
 
-def build_merkle(leaves):
-    if not leaves:
+def hash_data(data):
+    return hashlib.sha256(data.encode()).hexdigest()
+
+def build_merkle_root(hashes):
+    if not hashes:
         return None
 
-    nodes = [sha256(str(x)) for x in leaves]
-
-    while len(nodes) > 1:
+    while len(hashes) > 1:
         temp = []
-        for i in range(0, len(nodes), 2):
-            left = nodes[i]
-            right = nodes[i+1] if i+1 < len(nodes) else left
-            temp.append(sha256(left + right))
-        nodes = temp
+        for i in range(0, len(hashes), 2):
+            left = hashes[i]
+            right = hashes[i+1] if i+1 < len(hashes) else left
+            temp.append(hash_data(left + right))
+        hashes = temp
 
-    return nodes[0]
+    return hashes[0]

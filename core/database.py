@@ -4,7 +4,6 @@ from config import DB_CONFIG
 def connect():
     return psycopg2.connect(**DB_CONFIG)
 
-
 def create_table():
     conn = connect()
     cur = conn.cursor()
@@ -12,14 +11,12 @@ def create_table():
     cur.execute("""
     CREATE TABLE IF NOT EXISTS logs (
         id SERIAL PRIMARY KEY,
-        timestamp TEXT,
         event TEXT,
         description TEXT,
-        user_name TEXT,
-        ip TEXT,
+        user_id TEXT,
+        ip_address TEXT,
         prev_hash TEXT,
-        curr_hash TEXT,
-        merkle_root TEXT
+        current_hash TEXT
     )
     """)
 

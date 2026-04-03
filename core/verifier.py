@@ -5,37 +5,23 @@ def verify_logs():
     conn = connect()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM logs ORDER BY id")
+    cur.execute("SELECT id, event, description, user_id, ip_address, prev_hash, current_hash FROM logs ORDER BY id")
     rows = cur.fetchall()
 
-    if len(rows) <= 1:
-        return "⚠️ Not enough logs to verify"
+    prev_hash = "0"
 
-    for i in range(1, len(rows)):
-        prev = rows[i-1]
-        curr = rows[i]
+    for row in rows:
+        id, event, desc, user, ip, db_prev, db_hash = row
 
-        # 🔴 Detect deletion
-        if curr[0] != prev[0] + 1:
-            return f"❌ Log deleted near index {i}"
+        if db_prev != prev_hash:
+            return f"❌ Tampered at log {id} (prev hash mismatch)"
 
-        # 🔴 Detect chain break
-        if curr[6] != prev[7]:
-            return f"❌ Chain broken at index {i}"
+        data = f"{event}{desc}{user}{ip}"
+        calc_hash = generate_hash(data, prev_hash)
 
-        # 🔴 Recalculate hash
-        recalculated = generate_hash(
-            curr[0],
-            curr[1],
-            curr[2],
-            curr[3],
-            curr[4],
-            curr[5],
-            curr[6]
-        )
+        if calc_hash != db_hash:
+            return f"❌ Tampered at log {id} (hash mismatch)"
 
-        # 🔴 Detect modification
-        if curr[7] != recalculated:
-            return f"❌ Data tampered at index {i}"
+        prev_hash = db_hash
 
     return "✅ Logs are secure"

@@ -1,36 +1,41 @@
-from fastapi import FastAPI
 import threading
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+from agent.host_agent import start_agent
 from core.database import create_table
 from core.log_manager import add_log
 from core.verifier import verify_logs
-from agent.host_agent import start_agent
+from core.get_logs import get_logs
 
 app = FastAPI()
 
-# Create DB table on startup
-create_table()
+# CORS (frontend fix)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+create_table()
 
 @app.get("/")
 def home():
     return {"message": "SecureNet Logging System Running"}
-
 
 @app.post("/log")
 def log(event: str, description: str, user: str, ip: str):
     root = add_log(event, description, user, ip)
     return {"status": "added", "merkle_root": root}
 
-
 @app.get("/verify")
 def verify():
-    result = verify_logs()
-    return {"result": result}
+    return {"result": verify_logs()}
 
+@app.get("/logs")
+def logs():
+    return get_logs()
 
-# 🔥 START AGENT AUTOMATICALLY
-@app.on_event("startup")
-def start_background_agent():
-    thread = threading.Thread(target=start_agent, daemon=True)
-    thread.start()
+threading.Thread(target=start_agent, daemon=True).start()

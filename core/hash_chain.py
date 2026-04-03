@@ -1,5 +1,5 @@
-from crypto.hashing import sha256
+import hashlib
 
-def generate_hash(index, timestamp, event, desc, user, ip, prev_hash):
-    data = f"{index}{timestamp}{event}{desc}{user}{ip}{prev_hash}"
-    return sha256(data)
+def generate_hash(data, prev_hash):
+    combined = str(data) + str(prev_hash)
+    return hashlib.sha256(combined.encode()).hexdigest()

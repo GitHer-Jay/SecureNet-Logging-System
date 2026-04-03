@@ -1,38 +1,29 @@
-from datetime import datetime
 from core.database import connect
 from core.hash_chain import generate_hash
-from core.merkle_tree import build_merkle
+from core.merkle_tree import build_merkle_root
 
-
-def add_log(event, desc, user, ip):
+def add_log(event, description, user, ip):
     conn = connect()
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM logs ORDER BY id DESC LIMIT 1")
-    last = cur.fetchone()
+    cur.execute("SELECT current_hash FROM logs ORDER BY id DESC LIMIT 1")
+    prev = cur.fetchone()
+    prev_hash = prev[0] if prev else "0"
 
-    index = last[0] + 1 if last else 0
-    prev_hash = last[7] if last else "0"
-
-    timestamp = str(datetime.now())
-
-    curr_hash = generate_hash(index, timestamp, event, desc, user, ip, prev_hash)
-
-    # Build Merkle tree
-    cur.execute("SELECT curr_hash FROM logs")
-    rows = cur.fetchall()
-
-    leaves = [r[0] for r in rows]
-    leaves.append(curr_hash)
-
-    merkle_root = build_merkle(leaves)
+    data = f"{event}{description}{user}{ip}"
+    current_hash = generate_hash(data, prev_hash)
 
     cur.execute("""
-    INSERT INTO logs (timestamp, event, description, user_name, ip, prev_hash, curr_hash, merkle_root)
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-    """, (timestamp, event, desc, user, ip, prev_hash, curr_hash, merkle_root))
+        INSERT INTO logs (event, description, user_id, ip_address, prev_hash, current_hash)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (event, description, user, ip, prev_hash, current_hash))
 
     conn.commit()
-    conn.close()
 
-    return merkle_root
+    cur.execute("SELECT current_hash FROM logs")
+    hashes = [row[0] for row in cur.fetchall()]
+
+    root = build_merkle_root(hashes)
+
+    conn.close()
+    return root
